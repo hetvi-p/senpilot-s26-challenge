@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     BASE_URL: str = "http://localhost:8000"
     LOG_LEVEL: str = "INFO"
 
-    REDIS_URL = "redis://red-d6mbhj7afjfc7390jjeg:6379"
-    CELERY_BROKER_URL = "redis://red-d6mbhj7afjfc7390jjeg:6379"
-    CELERY_RESULT_BACKEND = "redis://red-d6mbhj7afjfc7390jjeg:6379"
+    REDIS_URL: str | None = None
+    CELERY_BROKER_URL: str | None = None
+    CELERY_RESULT_BACKEND: str | None = None
 
     MAILGUN_API_KEY: str = Field(default="", repr=False)
     MAILGUN_DOMAIN: str = ""
