@@ -98,4 +98,5 @@ services:
     name: uarb-redis
     plan: starter
     region: oregon
+    ipAllowList: []
     maxmemoryPolicy: noeviction
