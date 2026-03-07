@@ -1,0 +1,79 @@
+from fastapi import APIRouter, Request, HTTPException
+
+from app.core.settings import settings
+from app.core.errors import WebhookAuthError, ParseError
+from app.storage.token_store import MemoryTokenStore
+from app.services.mailgun_webhook_auth import authenticate_mailgun_webhook
+from app.services.parser import parse_email_request
+from app.services.models import DocumentType
+from app.integrations.ollama_client import OllamaClient
+from app.workers.tasks import process_inbound_email
+
+router = APIRouter()
+
+# For local/dev. In production, use RedisTokenStore.
+_token_store = MemoryTokenStore()
+
+@router.post("/inbound")
+async def inbound(request: Request):
+    form = await request.form()
+
+    # 1) Authenticate webhook
+    try:
+        authenticate_mailgun_webhook(
+            signing_key=settings.MAILGUN_WEBHOOK_SIGNING_KEY,
+            form=form,
+            token_store=_token_store,
+        )
+    except WebhookAuthError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    sender = form.get("sender")
+    subject = form.get("subject") or ""
+    body_plain = form.get("body-plain") or ""
+    message_id = form.get("Message-Id") or form.get("message-id") or "" #TODO: find out what this is 
+
+    if not sender:
+        raise HTTPException(status_code=400, detail="Missing sender")
+
+    # 2) Parse matter + doc type (regex first, LLM fallback)
+    ollama = None
+    if settings.OLLAMA_BASE_URL and settings.OLLAMA_MODEL:
+        ollama = OllamaClient(base_url=settings.OLLAMA_BASE_URL, model=settings.OLLAMA_MODEL)
+
+    try:
+        parsed = parse_email_request(
+            subject=subject,
+            body_plain=body_plain,
+            allowed_doc_types=[
+                DocumentType.EXHIBITS,
+                DocumentType.KEY_DOCUMENTS,
+                DocumentType.OTHER_DOCUMENTS,
+                DocumentType.TRANSCRIPTS,
+                DocumentType.RECORDINGS,
+            ],
+            ollama=ollama,
+        )
+    except ParseError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+
+    # 3) Enqueue the rest of the pipeline (scrape/zip/summary later)
+    process_inbound_email.delay(
+        {
+            "sender": sender,
+            "subject": subject,
+            "body_plain": body_plain,
+            "message_id": message_id,
+            "matter_number": parsed.matter_number,
+            "document_type": parsed.document_type.value,
+            "parse_strategy": parsed.strategy,
+            "parse_confidence": parsed.confidence,
+        }
+    )
+
+    return {"queued": True, "parsed": parsed.model_dump()}
+
+
+
+
