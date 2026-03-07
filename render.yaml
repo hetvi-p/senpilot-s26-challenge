@@ -1,0 +1,101 @@
+services:
+  - type: web
+    name: uarb-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: uarb-matter-mail-agent
+      - key: LOG_LEVEL
+        value: INFO
+      - key: BASE_URL
+        sync: false
+
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        value: hetvi.ca
+      - key: MAILGUN_FROM
+        value: UARB Agent <postmaster@hetvi.ca>
+      - key: MAILGUN_WEBHOOK_SIGNING_KEY
+        sync: false
+
+      - key: UARB_BASE_URL
+        value: https://uarb.novascotia.ca/fmi/webd/UARB15
+      - key: MAX_DOCS
+        value: "10"
+      - key: MAX_ZIP_MB
+        value: "20"
+
+  - type: worker
+    name: uarb-celery-worker
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerCommand: celery -A app.workers.celery_app:celery_app worker --loglevel=info --concurrency=2
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: uarb-matter-mail-agent
+      - key: LOG_LEVEL
+        value: INFO
+
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: uarb-redis
+          property: connectionString
+
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        value: hetvi.ca
+      - key: MAILGUN_FROM
+        value: UARB Agent <postmaster@hetvi.ca>
+      - key: MAILGUN_WEBHOOK_SIGNING_KEY
+        sync: false
+
+      - key: UARB_BASE_URL
+        value: https://uarb.novascotia.ca/fmi/webd/UARB15
+      - key: MAX_DOCS
+        value: "10"
+      - key: MAX_ZIP_MB
+        value: "20"
+
+  - type: keyvalue
+    name: uarb-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: noeviction
