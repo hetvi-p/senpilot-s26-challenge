@@ -101,8 +101,8 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
 
     result = await asyncio.to_thread(
         run_inbound_email_pipeline,
-        payload,
-        task_id,
+        payload=payload,
+        task_id=task_id,
     )
     # Used Celery for local dev (had to switch to BackgroundTasks since Render doesnt allow in free tier)
     # process_inbound_email.delay(payload) 
