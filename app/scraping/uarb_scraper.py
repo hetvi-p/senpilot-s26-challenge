@@ -54,7 +54,7 @@ class UARBScraper:
 
         with sync_playwright() as p:
             browser = p.chromium.launch(
-                headless=True,
+                headless=False,
                 args=[
                     "--no-sandbox",
                     "--disable-dev-shm-usage",
@@ -111,13 +111,15 @@ class UARBScraper:
         except Exception:
             inner_border.click(timeout=10000)
 
+        page.wait_for_timeout(500)
         page.keyboard.type(matter_number, delay=80)
+        page.wait_for_timeout(500)
 
         # Click the bottom Search button 
         search_button = page.get_by_role("button", name="Search").nth(0)
         search_button.click(timeout=20000)
 
-        page.get_by_text(matter_number).first.wait_for(state="visible", timeout=20_000)
+        page.wait_for_timeout(6000)
 
 
     # ---------- Overview extraction ----------
@@ -195,8 +197,9 @@ class UARBScraper:
                 result.category_value = value
             elif result.type_value is None:
                 result.type_value = value
-        
-        page.get_by_text(matter_number).first.click(timeout=10_000)
+                
+        page.get_by_text(matter_number).click()
+        page.wait_for_timeout(10000)
 
         counts_map = self.extract_doc_counts(page)
         counts = MatterCounts(
@@ -253,8 +256,8 @@ class UARBScraper:
 
     def _click_tab(self, page, tab_prefix: str) -> None:
         tab = page.get_by_text(re.compile(rf"^{re.escape(tab_prefix)}\s*-\s*\d+\s*$"))
-        tab.first.click(timeout=10_000)
-
+        tab.first.click()
+        page.wait_for_timeout(300)
 
     def _download_go_get_it_files(self, page, out_dir: Path, limit: int, count: int) -> List[DownloadedDocument]:
         
@@ -304,18 +307,18 @@ class UARBScraper:
                     modal = page.get_by_text("Download Files").locator(
                         "xpath=ancestor::*[self::div][1]"
                     )
-                    modal.wait_for(state="visible", timeout=10_000)
+                    modal.wait_for(timeout=10000)
 
                     # Step 3: locate file inside modal
                     file_link = page.locator(
                         "text=/^\\s*.+\\.(pdf|doc|docx|xls|xlsx|zip)\\s*$/i"
                     ).first
 
-                    file_link.wait_for(state="visible", timeout=10_000)
+                    file_link.wait_for(timeout=10000)
 
                     # Step 4: download
-                    with page.expect_download(timeout=20_000) as dl_info:
-                        file_link.click(timeout=10_000)
+                    with page.expect_download() as dl_info:
+                        file_link.click()
 
                     download = dl_info.value
 
