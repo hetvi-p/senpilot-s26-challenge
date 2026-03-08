@@ -1,4 +1,5 @@
 import json
+import asyncio
 
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
 from uuid import uuid4
@@ -96,13 +97,13 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
             "parse_confidence": parsed.confidence,
         }
     
+    task_id = str(uuid4())
 
-    
-    run_inbound_email_pipeline( 
-        payload=payload, 
-        task_id=str(uuid4())
+    result = await asyncio.to_thread(
+        run_inbound_email_pipeline,
+        payload,
+        task_id,
     )
-
     # Used Celery for local dev (had to switch to BackgroundTasks since Render doesnt allow in free tier)
     # process_inbound_email.delay(payload) 
 
