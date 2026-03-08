@@ -30,10 +30,8 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
             form=form,
             token_store=_token_store,
         )
-    except:
-        pass
-    #except WebhookAuthError as e:
-     #   raise HTTPException(status_code=401, detail=str(e))
+    except WebhookAuthError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
     sender = form.get("sender")
     subject = form.get("subject") or ""
@@ -95,8 +93,6 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
             "parse_strategy": parsed.strategy,
             "parse_confidence": parsed.confidence,
         }
-
-    print("endpoint hit")
     
 
     background_tasks.add_task(
@@ -104,7 +100,6 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
         payload=payload, 
         task_id=str(uuid4())
     )
-    print("endpoint hit")
 
     # Used Celery for local dev (had to switch to BackgroundTasks since Render doesnt allow in free tier)
     # process_inbound_email.delay(payload) 
