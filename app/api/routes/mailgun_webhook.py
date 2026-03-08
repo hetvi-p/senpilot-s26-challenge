@@ -97,8 +97,8 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
         }
     
 
-    background_tasks.add_task(
-        run_inbound_email_pipeline, 
+    
+    run_inbound_email_pipeline( 
         payload=payload, 
         task_id=str(uuid4())
     )
