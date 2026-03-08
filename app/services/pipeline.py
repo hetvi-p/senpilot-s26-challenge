@@ -15,10 +15,13 @@ from app.core.settings import settings
 
 def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None = None) -> dict[str, Any]:
 
+    print("STAARTTTTt")
+
     sender = str(payload["sender"]).strip()
     subject = str(payload.get("subject") or "").strip()
     matter_number = str(payload["matter_number"]).strip()
     document_type = DocumentType(payload["document_type"])
+    print("GOTTTTTTT")
 
     mailgun = MailgunClient(
         api_key=settings.MAILGUN_API_KEY,
@@ -54,6 +57,7 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None =
         matter_number=matter_number,
         document_type=document_type,
     )
+    print("yayayssytaay")
 
     scraper = UARBScraper()
     overview, downloads = scraper.download_documents(
