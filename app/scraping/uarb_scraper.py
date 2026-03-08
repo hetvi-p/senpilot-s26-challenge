@@ -77,10 +77,10 @@ class UARBScraper:
     def _open_matter_page(self, page, *, matter_number: str) -> None:
         
         page.goto(self.cfg.base_url, wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_timeout(6000)
+        page.wait_for_timeout(8000)
 
         placeholder = page.locator("div.placeholder").filter(has_text="eg M01234").first
-        placeholder.wait_for(state="visible", timeout=30000)
+        placeholder.wait_for(state="visible", timeout=60000)
 
         inner_border = placeholder.locator(
             "xpath=ancestor::div[contains(@class, 'inner_border')]"
