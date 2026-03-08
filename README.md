@@ -15,8 +15,16 @@ Send an email to:
 ```
 dev@hetvi.ca
 ```
+**Note:**
+This project is deployed on the free tier of Render. After periods of inactivity, the server may go to sleep and take a few minutes to spin back up.
 
-Example email:
+Because of this, Mailgun requests may timeout if the server is still waking up.
+
+Before sending an email request, please first hit the health endpoint to wake the server:
+
+`https://senpilot-s26-challenge.onrender.com/health`
+
+**Example email:**
 
 ```
 Hi Agent,
