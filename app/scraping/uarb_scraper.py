@@ -105,9 +105,6 @@ class UARBScraper:
             if txt:
                 raw_values.append(self._normalize_text(txt))
 
-        print("\nNormalized div.text values:")
-        for i, value in enumerate(raw_values):
-            print(f"[{i}] {value!r}")
 
         noise = {
             "Exhibits",
@@ -128,10 +125,6 @@ class UARBScraper:
         }
 
         values = [v for v in raw_values if (v not in noise and not v.startswith("Found:"))]
-
-        print("\nFiltered candidate values:")
-        for i, value in enumerate(values):
-            print(f"[{i}] {value!r}")
 
         result = MatterOverview()
 

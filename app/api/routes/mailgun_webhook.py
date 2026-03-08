@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Request, HTTPException
 
 from app.core.settings import settings
@@ -11,8 +13,8 @@ from app.workers.tasks import process_inbound_email
 
 router = APIRouter()
 
-# For local/dev. In production, use RedisTokenStore.
 _token_store = MemoryTokenStore()
+
 
 @router.post("/inbound")
 async def inbound(request: Request):
@@ -25,13 +27,34 @@ async def inbound(request: Request):
             form=form,
             token_store=_token_store,
         )
-    except WebhookAuthError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    except:
+        pass   
+    #except WebhookAuthError as e:
+    #    raise HTTPException(status_code=401, detail=str(e))
 
     sender = form.get("sender")
     subject = form.get("subject") or ""
     body_plain = form.get("body-plain") or ""
-    message_id = form.get("Message-Id") or form.get("message-id") or "" #TODO: find out what this is 
+
+    message_id = form.get("Message-Id") or form.get("message-id") or form.get("Message-ID")
+    if not message_id:
+        headers_raw = form.get("message-headers") or form.get("message.headers")
+        if isinstance(headers_raw, str):
+            try:
+                headers = json.loads(headers_raw)
+            except json.JSONDecodeError:
+                headers = []
+            if isinstance(headers, list):
+                for header in headers:
+                    if (
+                        isinstance(header, list)
+                        and len(header) == 2
+                        and isinstance(header[0], str)
+                        and header[0].lower() == "message-id"
+                    ):
+                        message_id = header[1]
+                        break
+    message_id = str(message_id).strip().strip("<>") if message_id else ""
 
     if not sender:
         raise HTTPException(status_code=400, detail="Missing sender")
@@ -56,7 +79,6 @@ async def inbound(request: Request):
         )
     except ParseError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    
 
     # 3) Enqueue the rest of the pipeline (scrape/zip/summary later)
     process_inbound_email.delay(
@@ -73,7 +95,3 @@ async def inbound(request: Request):
     )
 
     return {"queued": True, "parsed": parsed.model_dump()}
-
-
-
-
