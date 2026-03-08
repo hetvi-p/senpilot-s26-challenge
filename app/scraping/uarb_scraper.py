@@ -53,7 +53,13 @@ class UARBScraper:
         )
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=self.cfg.headless)
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ],
+            )
             context = browser.new_context(accept_downloads=True)
             context.set_default_navigation_timeout(self.cfg.nav_timeout_ms)
             context.set_default_timeout(self.cfg.action_timeout_ms)
