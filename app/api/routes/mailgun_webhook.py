@@ -106,6 +106,5 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
     # Used Celery for local dev (had to switch to BackgroundTasks since Render doesnt allow in free tier)
     # process_inbound_email.delay(payload) 
 
-    print("AGGG")
 
     return {"queued": True, "parsed": parsed.model_dump()}

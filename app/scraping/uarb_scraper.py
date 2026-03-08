@@ -4,7 +4,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from playwright.sync_api import TimeoutError as PWTimeoutError, sync_playwright
 
@@ -12,8 +12,6 @@ from app.core.settings import settings
 from app.scraping.models import DownloadedDocument
 from app.scraping.models import MatterCounts, MatterOverview
 from app.services.models import DocumentType
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -29,7 +27,7 @@ class UARBScraper:
     def __init__(self, cfg: Optional[UARBScraperConfig] = None) -> None:
         self.cfg = cfg or UARBScraperConfig()
 
-    # ---------- Public API ----------
+    # ---------- Main Function ----------
 
     def download_documents(
         self,
@@ -43,18 +41,10 @@ class UARBScraper:
         """
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(
-            "Starting UARB scrape",
-            extra={
-                "matter_number": matter_number,
-                "document_type": document_type.value,
-                "out_dir": str(out_dir),
-            },
-        )
 
         with sync_playwright() as p:
             browser = p.chromium.launch(
-                headless=True,
+                headless=False,
                 args=[
                     "--no-sandbox",
                     "--disable-dev-shm-usage",
@@ -74,20 +64,13 @@ class UARBScraper:
                 count = overview.counts.get(document_type)
                 downloads = self._download_go_get_it_files(page, out_dir, limit=self.cfg.max_docs, count=count)
 
-                logger.info(
-                    "Finished UARB scrape",
-                    extra={
-                        "matter_number": matter_number,
-                        "document_type": document_type.value,
-                        "downloaded_count": len(downloads),
-                    },
-                )
                 print(overview)
                 return overview, downloads
 
             finally:
                 context.close()
                 browser.close()
+
 
     # ---------- Navigation ----------
 
@@ -214,6 +197,8 @@ class UARBScraper:
         return result
 
 
+    # ---------- Document Counts ----------
+
     def extract_doc_counts(self, page) -> dict:
 
         expected_labels = {
@@ -241,23 +226,9 @@ class UARBScraper:
             counts.setdefault(key, 0)
 
         return counts
-    
 
-    def _safe_text(self, locator) -> Optional[str]:
-        try:
-            text = locator.inner_text(timeout=5000).strip()
-            return text if text else None
-        except Exception:
-            return None
-        
-    def _normalize_text(self, text: str) -> str:
-        return " ".join(text.replace("\xa0", " ").split())
     
-
-    def _click_tab(self, page, tab_prefix: str) -> None:
-        tab = page.get_by_text(re.compile(rf"^{re.escape(tab_prefix)}\s*-\s*\d+\s*$"))
-        tab.first.click()
-        page.wait_for_timeout(300)
+    # ---------- Download Files ----------
 
     def _download_go_get_it_files(self, page, out_dir: Path, limit: int, count: int) -> List[DownloadedDocument]:
         
@@ -351,20 +322,10 @@ class UARBScraper:
                     downloaded_count += 1
                     found_new = True
 
-                    logger.info(
-                        "Downloaded file",
-                        extra={
-                            "saved_path": str(save_path),
-                            "downloaded_count": downloaded_count,
-                            "target": target,
-                        },
-                    )
-
                     if downloaded_count >= target:
                         break
 
                 except PWTimeoutError:
-                    logger.warning("Timed out downloading a file row; skipping")
                     print("Timeout error, skipping this file.")
                     continue
 
@@ -377,6 +338,22 @@ class UARBScraper:
                 page.wait_for_timeout(500) 
         
         return results
+    
+
+    def _safe_text(self, locator) -> Optional[str]:
+        try:
+            text = locator.inner_text(timeout=5000).strip()
+            return text if text else None
+        except Exception:
+            return None
+        
+    def _normalize_text(self, text: str) -> str:
+        return " ".join(text.replace("\xa0", " ").split())
+
+    def _click_tab(self, page, tab_prefix: str) -> None:
+        tab = page.get_by_text(re.compile(rf"^{re.escape(tab_prefix)}\s*-\s*\d+\s*$"))
+        tab.first.click()
+        page.wait_for_timeout(500)
 
     def _dedupe_path(self, path: Path) -> Path:
         if not path.exists():

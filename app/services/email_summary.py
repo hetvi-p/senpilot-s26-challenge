@@ -50,7 +50,6 @@ def build_summary_prompt_input(
 
 
 def draft_reply_email(*, ollama: OllamaClient, summary_input: dict[str, Any]) -> str:
-
     
     system = """
     You are an email drafting assistant for a legal-document retrieval workflow.

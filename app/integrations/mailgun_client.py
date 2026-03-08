@@ -29,7 +29,7 @@ class MailgunClient:
             "text": text,
         }
 
-        print(f"Sending email via Mailgun API to {to_email} with subject '{subject}' and {len(attachment_paths or [])} attachments")
+        print(f"\nSending email via Mailgun API to {to_email} with subject '{subject}' and {len(attachment_paths or [])} attachments\n")
         print(data)
 
         files = []
@@ -46,8 +46,6 @@ class MailgunClient:
                     data=data,
                     files=files,
                 )
-                print(resp.status_code)
-                print(resp.text)
 
                 resp.raise_for_status()
                 return resp.json()

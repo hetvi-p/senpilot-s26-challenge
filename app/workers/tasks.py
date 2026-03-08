@@ -17,8 +17,6 @@ def process_inbound_email(self, payload: dict) -> dict:
     """
     Orchestrates the inbound email workflow after webhook auth + parsing.
     """
-
-    print(f"Processing inbound email with payload: {payload}")
     
     result = run_inbound_email_pipeline(
         payload=payload,

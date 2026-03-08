@@ -96,7 +96,7 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None =
         email_body = fallback_reply_email(summary_input)
     """
 
-    print(email_body)
+    print('\n' + email_body)
 
     mailgun.send_message(
         to_email=sender,

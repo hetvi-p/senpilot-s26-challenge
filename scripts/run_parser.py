@@ -6,8 +6,8 @@ from app.core.settings import settings
 
 
 def main():
-    subject = "q"
-    body_plain = "q"
+    subject = "Need Docs please"
+    body_plain = "Hi Agent, Can you give me Other Documents files from M12205? Thanks!"
 
     ollama = None
     if settings.OLLAMA_BASE_URL and settings.OLLAMA_MODEL:
@@ -24,7 +24,7 @@ def main():
             DocumentType.TRANSCRIPTS,
             DocumentType.RECORDINGS,
         ],
-        ollama=ollama,  # Assuming no Ollama integration for this test
+        ollama=ollama, 
     )
     
     print(parsed)
