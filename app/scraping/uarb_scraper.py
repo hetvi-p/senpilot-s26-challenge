@@ -56,14 +56,10 @@ class UARBScraper:
             page = context.new_page()
 
             try:
-                print("YYYY")
-
                 self._open_matter_page(page, matter_number=matter_number)
                 overview = self._extract_overview(page, matter_number=matter_number)
-                print("YYYY")
 
                 self._click_tab(page, document_type.value)
-                print("YYYY")
 
                 count = overview.counts.get(document_type)
                 downloads = self._download_go_get_it_files(page, out_dir, limit=self.cfg.max_docs, count=count)

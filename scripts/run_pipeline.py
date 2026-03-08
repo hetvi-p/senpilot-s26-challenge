@@ -4,7 +4,7 @@ payload = {
     "sender": "hetvi.5612@gmail.com",
     "subject": "Docs please",
     "matter_number": "M12205",
-    "document_type": "Other Documents",
+    "document_type": "Exhibits",
 }
 
 run_inbound_email_pipeline(
