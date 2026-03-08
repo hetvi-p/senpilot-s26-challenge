@@ -30,10 +30,8 @@ async def inbound(request: Request, background_tasks: BackgroundTasks):
             form=form,
             token_store=_token_store,
         )
-    except:
-        pass   
-    #except WebhookAuthError as e:
-    #    raise HTTPException(status_code=401, detail=str(e))
+    except WebhookAuthError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
     sender = form.get("sender")
     subject = form.get("subject") or ""
