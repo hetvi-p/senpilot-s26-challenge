@@ -74,8 +74,16 @@ def parse_email_request(
             confidence=0.95,
             strategy="regex",
         )
+    
+    return ParsedEmailRequest(
+            matter_number='M11111',  # default to a dummy matter number to avoid issues downstream; we'll ask for clarification in the email reply
+            document_type=DocumentType.OTHER_DOCUMENTS,  # default to a dummy doc type to avoid issues downstream; we'll ask for clarification in the email reply
+            confidence=0.0,
+            strategy="clarification_needed",
+        )
 
-    # LLM fallback only if needed + client provided
+
+    # LLM fallback only if needed + client provided (ONLY FOR LOCAL)
     if ollama is None:
         raise ParseError("Could not parse matter number and document type (no LLM fallback configured)")
 
