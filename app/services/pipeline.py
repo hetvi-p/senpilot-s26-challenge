@@ -74,6 +74,10 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None) 
         downloaded_count=len(downloads),
     )
 
+    email_body = fallback_reply_email(summary_input)
+
+    # USING LLM (OLLAMA) FOR LOCAL USE
+    """ 
     ollama = OllamaClient(
         base_url=settings.OLLAMA_BASE_URL,
         model=settings.OLLAMA_MODEL,
@@ -86,6 +90,7 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None) 
         )
     except Exception:
         email_body = fallback_reply_email(summary_input)
+    """
 
     print(email_body)
 
