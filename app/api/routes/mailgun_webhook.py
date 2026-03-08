@@ -94,4 +94,6 @@ async def inbound(request: Request):
         }
     )
 
+    print("AGGG")
+
     return {"queued": True, "parsed": parsed.model_dump()}
