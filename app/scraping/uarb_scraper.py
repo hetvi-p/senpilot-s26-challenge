@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +12,8 @@ from app.core.settings import settings
 from app.scraping.models import DownloadedDocument
 from app.scraping.models import MatterCounts, MatterOverview
 from app.services.models import DocumentType
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -40,6 +43,15 @@ class UARBScraper:
         """
         out_dir.mkdir(parents=True, exist_ok=True)
 
+        logger.info(
+            "Starting UARB scrape",
+            extra={
+                "matter_number": matter_number,
+                "document_type": document_type.value,
+                "out_dir": str(out_dir),
+            },
+        )
+
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=self.cfg.headless)
             context = browser.new_context(accept_downloads=True)
@@ -55,6 +67,15 @@ class UARBScraper:
 
                 count = overview.counts.get(document_type)
                 downloads = self._download_go_get_it_files(page, out_dir, limit=self.cfg.max_docs, count=count)
+
+                logger.info(
+                    "Finished UARB scrape",
+                    extra={
+                        "matter_number": matter_number,
+                        "document_type": document_type.value,
+                        "downloaded_count": len(downloads),
+                    },
+                )
                 print(overview)
                 return overview, downloads
 
@@ -84,15 +105,14 @@ class UARBScraper:
         except Exception:
             inner_border.click(timeout=10000)
 
-        page.wait_for_timeout(500)
         page.keyboard.type(matter_number, delay=80)
-        page.wait_for_timeout(800)
 
-        # Click the top Search button only
+        # Click the bottom Search button 
         search_button = page.get_by_role("button", name="Search").nth(0)
         search_button.click(timeout=20000)
 
-        page.wait_for_timeout(6000)
+        page.get_by_text(matter_number).first.wait_for(state="visible", timeout=20_000)
+
 
     # ---------- Overview extraction ----------
 
@@ -170,8 +190,7 @@ class UARBScraper:
             elif result.type_value is None:
                 result.type_value = value
         
-        page.get_by_text(matter_number).click()
-        page.wait_for_timeout(10000)
+        page.get_by_text(matter_number).first.click(timeout=10_000)
 
         counts_map = self.extract_doc_counts(page)
         counts = MatterCounts(
@@ -228,8 +247,7 @@ class UARBScraper:
 
     def _click_tab(self, page, tab_prefix: str) -> None:
         tab = page.get_by_text(re.compile(rf"^{re.escape(tab_prefix)}\s*-\s*\d+\s*$"))
-        tab.first.click()
-        page.wait_for_timeout(300)
+        tab.first.click(timeout=10_000)
 
 
     def _download_go_get_it_files(self, page, out_dir: Path, limit: int, count: int) -> List[DownloadedDocument]:
@@ -241,7 +259,7 @@ class UARBScraper:
 
         target = min(limit, count)
         downloaded_count = 0
-        downloaded = set()
+        downloaded: set[str] = set()
         
         panel = page.locator(".v-panel.iwp-list-base-layout-style").first
 
@@ -280,18 +298,18 @@ class UARBScraper:
                     modal = page.get_by_text("Download Files").locator(
                         "xpath=ancestor::*[self::div][1]"
                     )
-                    modal.wait_for(timeout=10000)
+                    modal.wait_for(state="visible", timeout=10_000)
 
                     # Step 3: locate file inside modal
                     file_link = page.locator(
                         "text=/^\\s*.+\\.(pdf|doc|docx|xls|xlsx|zip)\\s*$/i"
                     ).first
 
-                    file_link.wait_for(timeout=10000)
+                    file_link.wait_for(state="visible", timeout=10_000)
 
                     # Step 4: download
-                    with page.expect_download() as dl_info:
-                        file_link.click()
+                    with page.expect_download(timeout=20_000) as dl_info:
+                        file_link.click(timeout=10_000)
 
                     download = dl_info.value
 
@@ -324,10 +342,20 @@ class UARBScraper:
                     downloaded_count += 1
                     found_new = True
 
+                    logger.info(
+                        "Downloaded file",
+                        extra={
+                            "saved_path": str(save_path),
+                            "downloaded_count": downloaded_count,
+                            "target": target,
+                        },
+                    )
+
                     if downloaded_count >= target:
                         break
 
                 except PWTimeoutError:
+                    logger.warning("Timed out downloading a file row; skipping")
                     print("Timeout error, skipping this file.")
                     continue
 
@@ -337,7 +365,7 @@ class UARBScraper:
             if not found_new:
                 panel.hover()
                 page.mouse.wheel(0, 300)
-                page.wait_for_timeout(700) 
+                page.wait_for_timeout(500) 
         
         return results
 

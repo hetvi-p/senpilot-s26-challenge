@@ -13,7 +13,7 @@ from app.storage.zip_builder import zip_files
 from app.core.settings import settings
 
 
-def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None) -> dict[str, Any]:
+def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None = None) -> dict[str, Any]:
 
     sender = str(payload["sender"]).strip()
     subject = str(payload.get("subject") or "").strip()
@@ -41,7 +41,11 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None) 
                 "Thanks!"
             ),
         )
-        return
+        return {
+            "ok": True,
+            "sender": sender,
+            "clarification_requested": True,
+        }
 
 
     workspace = create_job_workspace(
@@ -110,3 +114,4 @@ def run_inbound_email_pipeline(*, payload: dict[str, Any], task_id: str | None) 
         "zip_path": str(zip_path) if zip_path else None,
         "workspace": str(workspace.root_dir),
     }
+

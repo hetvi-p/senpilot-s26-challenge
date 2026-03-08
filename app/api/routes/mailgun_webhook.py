@@ -1,6 +1,7 @@
 import json
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, BackgroundTasks
+from uuid import uuid4
 
 from app.core.settings import settings
 from app.core.errors import WebhookAuthError, ParseError
@@ -9,7 +10,9 @@ from app.services.mailgun_webhook_auth import authenticate_mailgun_webhook
 from app.services.parser import parse_email_request
 from app.services.models import DocumentType
 from app.integrations.ollama_client import OllamaClient
+from app.services.pipeline import run_inbound_email_pipeline
 from app.workers.tasks import process_inbound_email
+
 
 router = APIRouter()
 
@@ -17,7 +20,7 @@ _token_store = MemoryTokenStore()
 
 
 @router.post("/inbound")
-async def inbound(request: Request):
+async def inbound(request: Request, background_tasks: BackgroundTasks):
     form = await request.form()
 
     # 1) Authenticate webhook
@@ -81,8 +84,8 @@ async def inbound(request: Request):
         raise HTTPException(status_code=422, detail=str(e))
 
     # 3) Enqueue the rest of the pipeline (scrape/zip/summary later)
-    process_inbound_email(
-        {
+
+    payload = {
             "sender": sender,
             "subject": subject,
             "body_plain": body_plain,
@@ -92,7 +95,16 @@ async def inbound(request: Request):
             "parse_strategy": parsed.strategy,
             "parse_confidence": parsed.confidence,
         }
+    
+
+    background_tasks.add_task(
+        run_inbound_email_pipeline, 
+        payload=payload, 
+        task_id=str(uuid4())
     )
+
+    # Used Celery for local dev (had to switch to BackgroundTasks since Render doesnt allow in free tier)
+    # process_inbound_email.delay(payload) 
 
     print("AGGG")
 
