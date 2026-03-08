@@ -37,7 +37,7 @@ services:
       - key: MAILGUN_DOMAIN
         value: hetvi.ca
       - key: MAILGUN_FROM
-        value: UARB Agent <postmaster@hetvi.ca>
+        value: UARB Agent <dev@hetvi.ca>
       - key: MAILGUN_WEBHOOK_SIGNING_KEY
         sync: false
 
@@ -83,7 +83,7 @@ services:
       - key: MAILGUN_DOMAIN
         value: hetvi.ca
       - key: MAILGUN_FROM
-        value: UARB Agent <postmaster@hetvi.ca>
+        value: UARB Agent <dev@hetvi.ca>
       - key: MAILGUN_WEBHOOK_SIGNING_KEY
         sync: false
 

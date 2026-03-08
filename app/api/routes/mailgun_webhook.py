@@ -81,7 +81,7 @@ async def inbound(request: Request):
         raise HTTPException(status_code=422, detail=str(e))
 
     # 3) Enqueue the rest of the pipeline (scrape/zip/summary later)
-    process_inbound_email.delay(
+    process_inbound_email(
         {
             "sender": sender,
             "subject": subject,
